@@ -80,11 +80,14 @@ triggers:
   - trigger: homeassistant
     event: start
   - trigger: time_pattern
-    hours: "/1"
+    hours: /1
 
 variables:
+  v_device_id: !input awtrix
   v_sensor:    !input usage_sensor
-  v_awtrix:     !input awtrix
+  v_awtrix: 
+    "{{ iif( device_attr(device_id, 'name_by_user') != none, device_attr(device_id,
+    'name_by_user'), device_attr(device_id, 'name') ) }}"
   v_app:     !input app_name
   v_icon:      !input icon_id
   v_color:     !input base_color
@@ -97,7 +100,7 @@ actions:
   - action: mqtt.publish
     alias: "Publish Claude usage to Awtrix"
     data:
-      qos: "2"
+      qos: 0
       retain: false
       topic: "{{ v_awtrix }}/custom/{{v_app}}"
       payload: >-
@@ -123,4 +126,4 @@ actions:
             "color": v_color
           } | tojson }}
 
-mode: single
+mode: restart
