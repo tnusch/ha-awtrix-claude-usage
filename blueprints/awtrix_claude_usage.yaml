@@ -92,7 +92,7 @@ triggers:
   - trigger: homeassistant
     event: start
   - trigger: time_pattern
-    hours: /{{ update_interval }}
+    hours: "/1"
 
 variables:
   v_sensor:    !input usage_sensor
