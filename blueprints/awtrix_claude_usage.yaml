@@ -4,6 +4,7 @@ blueprint:
     Displays your weekly Claude usage on an Awtrix LED matrix.
     Shows usage percentage with a progress bar, color-coded by thresholds.
     Triggers on Home Assistant start and on a configurable time pattern.
+    It uses a custom icon you need to install.
   domain: automation
   author: "tnusch"
   homeassistant:
@@ -12,20 +13,28 @@ blueprint:
     usage_sensor:
       name: Claude Weekly Usage Sensor
       description: >
-        Sensor that provides your weekly Claude usage as a percentage (0–100).
+        Sensor that provides your weekly Claude usage as a percentage (0–100), 
+        e.g. https://github.com/trickv/hass-claude-usage
       selector:
         entity:
           domain: sensor
-
-    awtrix_topic:
-      name: Awtrix MQTT Topic Prefix
-      description: >
-        The MQTT topic prefix of your Awtrix device, e.g. "awtrix_ab1234".
-        The blueprint publishes to <prefix>/custom/claude_usage.
-      default: "awtrix_ab1234"
+    awtrix:
+      name: AWTRIX Device
+      description: Select the AWTRIX device
+      selector:
+        device:
+          filter:
+            - integration: mqtt
+              manufacturer: Blueforcer
+              model: AWTRIX 3
+              
+    app_name:
+      name: AWTRIX Application name
+      description: This is the app name listed in the MQTT topic - it should be unique
       selector:
         text:
-
+      default: claude_usage
+      
     update_interval:
       name: Update Interval (hours)
       description: >
@@ -87,7 +96,8 @@ triggers:
 
 variables:
   v_sensor:    !input usage_sensor
-  v_topic:     !input awtrix_topic
+  v_awtrix:     !input awtrix
+  v_app:     !input app_name
   v_icon:      !input icon_id
   v_color:     !input base_color
   v_warn:      !input threshold_warn
@@ -101,7 +111,7 @@ actions:
     data:
       qos: "2"
       retain: false
-      topic: "{{ v_topic }}/custom/claude_usage"
+      topic: "{{ v_awtrix }}/custom/{{v_app}}"
       payload: >-
         {% set usage = states(v_sensor) | int(-1) %}
         {% set ok = usage >= 0 %}
