@@ -1,0 +1,128 @@
+blueprint:
+  name: "Awtrix – Claude Weekly Usage"
+  description: >
+    Displays your weekly Claude usage on an Awtrix LED matrix.
+    Shows usage percentage with a progress bar, color-coded by thresholds.
+    Triggers on Home Assistant start and on a configurable time pattern.
+  domain: automation
+  author: "tnusch"
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    usage_sensor:
+      name: Claude Weekly Usage Sensor
+      description: >
+        Sensor that provides your weekly Claude usage as a percentage (0–100).
+      selector:
+        entity:
+          domain: sensor
+
+    awtrix_topic:
+      name: Awtrix MQTT Topic Prefix
+      description: >
+        The MQTT topic prefix of your Awtrix device, e.g. "awtrix_ab1234".
+        The blueprint publishes to <prefix>/custom/claude_usage.
+      default: "awtrix_ab1234"
+      selector:
+        text:
+
+    update_interval:
+      name: Update Interval (hours)
+      description: >
+        How often to refresh the display. 1 = every hour, 2 = every 2 hours, etc.
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 12
+          step: 1
+          mode: slider
+
+    icon_id:
+      name: Awtrix Icon ID
+      description: >
+        Icon number pre-loaded on your Awtrix for Claude.
+        Find or upload icons at blueforcer.github.io/awtrix3.
+      default: "74725"
+      selector:
+        text:
+
+    base_color:
+      name: Base Text & Progress Color
+      description: >
+        Hex color (without #) used for the text and progress bar.
+      default: "DE7356"
+      selector:
+        text:
+
+    threshold_warn:
+      name: Warning Threshold (%)
+      description: >
+        Usage above this percentage → yellow text color.
+      default: 50
+      selector:
+        number:
+          min: 1
+          max: 99
+          step: 1
+          mode: slider
+
+    threshold_high:
+      name: High Threshold (%)
+      description: >
+        Usage above this percentage → red text color.
+      default: 80
+      selector:
+        number:
+          min: 1
+          max: 99
+          step: 1
+          mode: slider
+
+triggers:
+  - trigger: homeassistant
+    event: start
+  - trigger: time_pattern
+    hours: /{{ update_interval }}
+
+variables:
+  v_sensor:    !input usage_sensor
+  v_topic:     !input awtrix_topic
+  v_icon:      !input icon_id
+  v_color:     !input base_color
+  v_warn:      !input threshold_warn
+  v_high:      !input threshold_high
+
+conditions: []
+
+actions:
+  - action: mqtt.publish
+    alias: "Publish Claude usage to Awtrix"
+    data:
+      qos: "2"
+      retain: false
+      topic: "{{ v_topic }}/custom/claude_usage"
+      payload: >-
+        {% set usage = states(v_sensor) | int(-1) %}
+        {% set ok = usage >= 0 %}
+
+        {% set text_color = 'FF0000' if usage > v_high
+                       else ('FFDE21' if usage > v_warn
+                       else v_color) %}
+
+        {% set text = usage ~ '% wk' if ok else 'N/A' %}
+
+        {{ {
+          "text": text,
+          "icon": v_icon,
+          "color": text_color,
+          "progress": usage,
+          "progressC": v_color
+        } | tojson if ok else
+          {
+            "text": "N/A",
+            "icon": v_icon,
+            "color": v_color
+          } | tojson }}
+
+mode: single
