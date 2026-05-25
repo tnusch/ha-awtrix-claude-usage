@@ -35,18 +35,6 @@ blueprint:
         text:
       default: claude_usage
       
-    update_interval:
-      name: Update Interval (hours)
-      description: >
-        How often to refresh the display. 1 = every hour, 2 = every 2 hours, etc.
-      default: 1
-      selector:
-        number:
-          min: 1
-          max: 12
-          step: 1
-          mode: slider
-
     icon_id:
       name: Awtrix Icon ID
       description: >
