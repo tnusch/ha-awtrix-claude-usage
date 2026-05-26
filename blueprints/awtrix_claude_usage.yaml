@@ -1,7 +1,7 @@
 blueprint:
-  name: "Awtrix – Claude Weekly Usage"
+  name: "Awtrix – Claude Usage"
   description: >
-    Displays your weekly Claude usage on an Awtrix LED matrix.
+    Displays your Claude usage on an Awtrix LED matrix.
     Shows usage percentage with a progress bar, color-coded by thresholds.
     Triggers on Home Assistant start and on a configurable time pattern.
     It uses a custom icon you need to install.
@@ -11,10 +11,10 @@ blueprint:
     min_version: "2024.6.0"
   input:
     usage_sensor:
-      name: Claude Weekly Usage Sensor
+      name: Claude Usage Sensor
       description: >
-        Sensor that provides your weekly Claude usage as a percentage (0–100), 
-        e.g. https://github.com/trickv/hass-claude-usage
+        Sensor that provides your Claude (weekly or session) usage as a percentage (0–100), 
+        e.g. via https://github.com/trickv/hass-claude-usage
       selector:
         entity:
           domain: sensor
@@ -39,15 +39,22 @@ blueprint:
       name: Awtrix Icon ID
       description: >
         Icon number pre-loaded on your Awtrix for Claude.
-        Find or upload icons at blueforcer.github.io/awtrix3.
+        Find or upload icons at https://developer.lametric.com/icons.
       default: "74725"
       selector:
         text:
-
+        
+    suffix_text:
+      name: Suffix to display
+      description: Suffix to be displayed on AWTRIX to indicate usage type (e.g. "wk" for weekly, "se" for session)
+      selector:
+        text:
+      default: "wk"
+      
     base_color:
       name: Base Text & Progress Color
       description: >
-        Hex color (without #) used for the text and progress bar.
+        Hex color (without #) used for the text and progress bar (default as Claude brand color).
       default: "DE7356"
       selector:
         text:
@@ -76,6 +83,61 @@ blueprint:
           step: 1
           mode: slider
 
+    scroll_speed:
+      name: Scroll speed
+      description: Modifies the scroll speed. Enter a percentage value of the original scroll speed.
+      default: 100
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 10
+          unit_of_measurement: "%"
+          mode: slider
+
+    duration:
+      name: Duration (in seconds)
+      description: Sets how long the app should be displayed unit is seconds.
+      default: "6"
+      
+    text_case:
+      name: Text Case
+      description: Select how you would like your text to display.
+      selector:
+        select:
+          options:
+            - label: Use global setting
+              value: "0"
+            - label: Force Uppercase
+              value: "1"
+            - label: Show as you entered it
+              value: "2"
+          mode: dropdown
+          custom_value: false
+          multiple: false
+          sort: false
+      default: "2"
+      
+    push_icon:
+      name: Icon Mode
+      description: >
+        Please select the pushIcon setting for the icon
+          - `0`  Icon doesn't move
+          
+          - `1`  Icon moves with text and will not appear again
+          
+          - `2` Icon moves with text but appears again when the text starts to scroll again
+      selector:
+        select:
+          options:
+            - label: Icon doesn't move (default)
+              value: "0"
+            - label: Icon moves with text and will not appear again
+              value: "1"
+            - label: Icon moves with text but appears again when the text starts to scroll again
+              value: "2"
+      default: "0"
+
 triggers:
   - trigger: homeassistant
     event: start
@@ -85,14 +147,19 @@ triggers:
 variables:
   v_device_id: !input awtrix
   v_sensor:    !input usage_sensor
+  v_suffix:    !input suffix_text
   v_awtrix: 
-    "{{ iif( device_attr(device_id, 'name_by_user') != none, device_attr(device_id,
-    'name_by_user'), device_attr(device_id, 'name') ) }}"
+    "{{ iif( device_attr(v_device_id, 'name_by_user') != none, device_attr(v_device_id,
+    'name_by_user'), device_attr(v_device_id, 'name') ) }}"
   v_app:     !input app_name
   v_icon:      !input icon_id
   v_color:     !input base_color
   v_warn:      !input threshold_warn
   v_high:      !input threshold_high
+  v_push_icon: !input push_icon
+  v_duration: !input duration
+  v_text_case: !input text_case
+  v_scroll_speed: !input scroll_speed
 
 conditions: []
 
@@ -111,10 +178,14 @@ actions:
                        else ('FFDE21' if usage > v_warn
                        else v_color) %}
 
-        {% set text = usage ~ '% wk' if ok else 'N/A' %}
+        {% set text = usage ~ '% ' ~ v_suffix if ok else 'N/A' %}
 
         {{ {
           "text": text,
+          "pushIcon": v_push_icon,
+          "duration": v_duration, 
+          "textCase": v_text_case, 
+          "scrollSpeed": v_scroll_speed,
           "icon": v_icon,
           "color": text_color,
           "progress": usage,
