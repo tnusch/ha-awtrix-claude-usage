@@ -7,6 +7,9 @@
 
 A Home Assistant blueprint that displays your **Claude AI usage** as a live progress bar on an Awtrix LED matrix. Usage percentage scrolls with color-coded alerts - green when you're within limits, yellow when approaching them, red when close to the cap.
 
+<img src="https://github.com/user-attachments/assets/73c44c47-a36a-494b-ac7b-d51fdab6c838" alt="Description" width="320" height="180">
+<img src="https://github.com/user-attachments/assets/3d9fd8f2-e52c-4e60-90c6-8d0b8c481959" alt="Description" width="320" height="180">
+
 ---
 
 ## Prerequisites
