@@ -39,7 +39,7 @@ blueprint:
       name: Awtrix Icon ID
       description: >
         Icon number pre-loaded on your Awtrix for Claude.
-        Find or upload icons at https://developer.lametric.com/icons.
+        Find out more about icons on https://blueforcer.github.io/awtrix3/#/icons.
       default: "74725"
       selector:
         text:
@@ -98,7 +98,14 @@ blueprint:
     duration:
       name: Duration (in seconds)
       description: Sets how long the app should be displayed unit is seconds.
-      default: "6"
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 1
+          unit_of_measurement: "s"
+          mode: slider
       
     text_case:
       name: Text Case
@@ -116,7 +123,7 @@ blueprint:
           custom_value: false
           multiple: false
           sort: false
-      default: "2"
+      default: "0"
       
     push_icon:
       name: Icon Mode
@@ -141,9 +148,11 @@ blueprint:
 triggers:
   - trigger: homeassistant
     event: start
-  - trigger: time_pattern
-    hours: /1
-
+  - trigger: state
+    entity_id: !input usage_sensor
+    for:
+      seconds: 5
+    
 variables:
   v_device_id: !input awtrix
   v_sensor:    !input usage_sensor
@@ -182,10 +191,10 @@ actions:
 
         {{ {
           "text": text,
-          "pushIcon": v_push_icon,
-          "duration": v_duration, 
-          "textCase": v_text_case, 
-          "scrollSpeed": v_scroll_speed,
+          "pushIcon": v_push_icon | int,
+          "duration": v_duration | int, 
+          "textCase": v_text_case | int, 
+          "scrollSpeed": v_scroll_speed | int,
           "icon": v_icon,
           "color": text_color,
           "progress": usage,
@@ -194,7 +203,11 @@ actions:
           {
             "text": "N/A",
             "icon": v_icon,
-            "color": v_color
+            "color": v_color,
+            "progress": 0,
+            "progressC": v_color,
+            "duration": v_duration | int,
+            "scrollSpeed": v_scroll_speed | int
           } | tojson }}
 
 mode: restart
